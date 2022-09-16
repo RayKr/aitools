@@ -2,6 +2,9 @@ import math
 import cmath
 from typing import Tuple
 
+import sympy as sy
+import sympy.core.add as add
+
 
 def rect2polar(x, y):
     """直角坐标转为极坐标
@@ -79,10 +82,10 @@ def insec(p1, r1, p2, r2):
     h = math.sqrt(R**2 - A**2)
     x2 = x + A * (a - x) / d
     y2 = y + A * (b - y) / d
-    x3 = round(x2 - h * (b - y) / d, 2)
-    y3 = round(y2 + h * (a - x) / d, 2)
-    x4 = round(x2 + h * (b - y) / d, 2)
-    y4 = round(y2 - h * (a - x) / d, 2)
+    x3 = x2 - h * (b - y) / d
+    y3 = y2 + h * (a - x) / d
+    x4 = x2 + h * (b - y) / d
+    y4 = y2 - h * (a - x) / d
     return [rect2polar(x3, y3), rect2polar(x4, y4)]
 
 
@@ -115,12 +118,51 @@ def locate(
     assert not collinear(p1, p2, p3), f"三点共线，无法定位"
     c1 = insec(p1, d1, p2, d2)
     c2 = insec(p1, d1, p3, d3)
-    c = [i for i in c1 if i in c2]
-    assert len(c) != 0, f"错误：找不到定位点"
-    assert len(c) == 1, f"错误：多个点位"
-    return c[0]
+    for r, t in c1:
+        for r2, t2 in c2:
+            if r == r2 and round(t, 0) == round(t2, 0):
+                return r, t
+    return None
+
+
+def solve_nonlin_complete(*args):
+    p1, p2, p3 = args[0], args[1], args[2]
+    alpha12, alpha23, alpha13 = args[3], args[4], args[5]
+    d1, d2, d3 = sy.symbols("d1 d2 d3")
+    eq = [
+        d1**2
+        + d2**2
+        - 2 * d1 * d2 * math.cos(math.radians(alpha12))
+        - distance(p1, p2) ** 2,
+        d2**2
+        + d3**2
+        - 2 * d2 * d3 * math.cos(math.radians(alpha23))
+        - distance(p2, p3) ** 2,
+        d1**2
+        + d3**2
+        - 2 * d1 * d3 * math.cos(math.radians(alpha13))
+        - distance(p1, p3) ** 2,
+        alpha12 + alpha23 - alpha13,
+    ]
+    return sy.nonlinsolve(eq, [d1, d2, d3])
 
 
 if __name__ == "__main__":
-    p = locate((100, 0), 127.06, (0, 0), 98, (98, 159.86), 170.01)
-    print(p)
+    p1, p2, p3 = (100, 159.86), (0, 0), (100, 0)
+    alpha12, alpha23, alpha13 = 29.16, 47.91, 77.06
+    # 假设alpha12+alpha23=alpha13
+    result = solve_nonlin_complete(p1, p2, p3, alpha12, alpha23, alpha13)
+    fil = {}
+    for r in result:
+        x, y, z = r
+        # print(r)
+        if (
+            not isinstance(x, add.Add)
+            and not isinstance(y, add.Add)
+            and not isinstance(z, add.Add)
+            and x >= 0
+            and y >= 0
+            and z >= 0
+        ):
+            p = locate(p1, x, p2, y, p3, z)
+            print(f'点位为：{p}')
