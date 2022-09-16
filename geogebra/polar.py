@@ -152,7 +152,6 @@ if __name__ == "__main__":
     alpha12, alpha23, alpha13 = 29.16, 47.91, 77.06
     # 假设alpha12+alpha23=alpha13
     result = solve_nonlin_complete(p1, p2, p3, alpha12, alpha23, alpha13)
-    fil = {}
     for r in result:
         x, y, z = r
         # print(r)
@@ -165,4 +164,4 @@ if __name__ == "__main__":
             and z >= 0
         ):
             p = locate(p1, x, p2, y, p3, z)
-            print(f'点位为：{p}')
+            print(f"点位为：{p}")
