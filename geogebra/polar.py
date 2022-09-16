@@ -6,6 +6,19 @@ import sympy as sy
 import sympy.core.add as add
 
 
+def in_error_range(a, b):
+    """允许的误差范围
+
+    Args:
+        a (_type_): _description_
+        b (_type_): _description_
+
+    Returns:
+        _type_: 在误差范围内则返回True，否则返回False
+    """
+    return round(a, 1) == round(b, 1)
+
+
 def rect2polar(x, y):
     """直角坐标转为极坐标
 
@@ -20,7 +33,7 @@ def rect2polar(x, y):
     p, t = cmath.polar(cn)
     dgr = math.degrees(t)
     dgr = round(dgr, 2) if dgr >= 0 else round(360 + dgr, 2)
-    return round(p, 0), dgr if dgr >= 0 else 360 + dgr
+    return round(p, 2), dgr if dgr >= 0 else 360 + dgr
 
 
 def polar2rect(p: Tuple[int, float]):
@@ -115,6 +128,19 @@ def locate(
     p3: Tuple[int, float],
     d3: float,
 ):
+    """通过三点定位
+
+    Args:
+        p1 (Tuple[int, float]): _description_
+        d1 (float): _description_
+        p2 (Tuple[int, float]): _description_
+        d2 (float): _description_
+        p3 (Tuple[int, float]): _description_
+        d3 (float): _description_
+
+    Returns:
+        _type_: 所求的未知点位极坐标
+    """
     assert not collinear(p1, p2, p3), f"三点共线，无法定位"
     c1 = insec(p1, d1, p2, d2)
     c2 = insec(p1, d1, p3, d3)
@@ -125,36 +151,99 @@ def locate(
     return None
 
 
-def solve_nonlin_complete(*args):
-    p1, p2, p3 = args[0], args[1], args[2]
-    alpha12, alpha23, alpha13 = args[3], args[4], args[5]
-    d1, d2, d3 = sy.symbols("d1 d2 d3")
+def cos_therom(x, y, d, theta):
+    """余弦定理
+
+    Args:
+        x (_type_): 边x
+        y (_type_): 边y
+        d (_type_): 第三条边d，也是theta正对的边
+        theta (_type_): x与y的夹角
+
+    Returns:
+        _type_: 余弦定理表达式
+    """
+    return x**2 + y**2 - 2 * x * y * math.cos(math.radians(theta)) - d**2
+
+
+def angle_of_vector(v1, v2):
+    """计算两个向量夹角
+
+    Args:
+        v1 (_type_): _description_
+        v2 (_type_): _description_
+
+    Returns:
+        _type_: 夹角角度
+    """
+    vector_prod = v1[0] * v2[0] + v1[1] * v2[1]
+    length_prod = math.sqrt(pow(v1[0], 2) + pow(v1[1], 2)) * math.sqrt(
+        pow(v2[0], 2) + pow(v2[1], 2)
+    )
+    cos = vector_prod * 1.0 / (length_prod * 1.0 + 1e-6)
+    return math.degrees(math.acos(cos))
+
+
+def get_tri_angel(p0, i, p3):
+    """通过三个点位获取角度
+
+    Args:
+        p0 (_type_): _description_
+        i (_type_): _description_
+        p3 (_type_): _description_
+
+    Returns:
+        _type_: 角度
+    """
+    A = p0
+    I = i
+    B = p3
+    # 转为直角系坐标
+    AR = polar2rect(A)
+    BR = polar2rect(B)
+    IR = polar2rect(I)
+    # 变成向量
+    AI_ = [IR[0], IR[1]]
+    BI_ = [IR[0] - BR[0], IR[1] - BR[1]]
+    agl = angle_of_vector(AI_, BI_)
+    return round(agl, 2)
+
+
+def solve_nonlineq(p0, p1, p2, p3, alpha01, alpha02, alpha12, alpha03):
+    """核心算法，求解的整体过程
+
+    Args:
+        p0 (_type_): 中心点位
+        p1 (_type_): 点位1
+        p2 (_type_): 点位2
+        p3 (_type_): 额外点位
+        alpha01 (_type_): p0与p1的夹角
+        alpha02 (_type_): p0与p2的夹角
+        alpha12 (_type_): p1与p2的夹角
+        alpha03 (_type_): p0与p3的夹角
+
+    Returns:
+        _type_: 最终定位的坐标
+    """
+    # 先计算出三个点两两距离
+    d01, d02, d12 = (
+        distance(p0, p1),
+        distance(p0, p2),
+        distance(p1, p2),
+    )
+    # 余弦定理方程组
+    h0, h1, h2 = sy.symbols("h0 h1 h2")
     eq = [
-        d1**2
-        + d2**2
-        - 2 * d1 * d2 * math.cos(math.radians(alpha12))
-        - distance(p1, p2) ** 2,
-        d2**2
-        + d3**2
-        - 2 * d2 * d3 * math.cos(math.radians(alpha23))
-        - distance(p2, p3) ** 2,
-        d1**2
-        + d3**2
-        - 2 * d1 * d3 * math.cos(math.radians(alpha13))
-        - distance(p1, p3) ** 2,
-        alpha12 + alpha23 - alpha13,
+        cos_therom(h0, h1, d01, alpha01),
+        cos_therom(h0, h2, d02, alpha02),
+        cos_therom(h1, h2, d12, alpha12),
     ]
-    return sy.nonlinsolve(eq, [d1, d2, d3])
-
-
-if __name__ == "__main__":
-    p1, p2, p3 = (100, 159.86), (0, 0), (100, 0)
-    alpha12, alpha23, alpha13 = 29.16, 47.91, 77.06
-    # 假设alpha12+alpha23=alpha13
-    result = solve_nonlin_complete(p1, p2, p3, alpha12, alpha23, alpha13)
-    for r in result:
+    # 得到非线性方程组的解析解
+    rst = sy.nonlinsolve(eq, [h0, h1, h2])
+    # 过滤结果，筛选出合理的点位
+    points = []
+    for r in rst:
         x, y, z = r
-        # print(r)
         if (
             not isinstance(x, add.Add)
             and not isinstance(y, add.Add)
@@ -163,5 +252,20 @@ if __name__ == "__main__":
             and y >= 0
             and z >= 0
         ):
-            p = locate(p1, x, p2, y, p3, z)
-            print(f"点位为：{p}")
+            p = locate(p0, x, p1, y, p2, z)
+            # 一般会存在镜像点
+            # 使用额外的点p3来验证角度是否与观测角度一致，不一致则为镜像点，需舍弃
+            agl = get_tri_angel(p0, p, p3)
+            # 如果在误差范围内，则视为同一个点位
+            if in_error_range(agl, alpha03):
+                points.append(p)
+    assert len(points) == 1, f"定位点错误：{points}"
+    return points[0]
+
+
+if __name__ == "__main__":
+    p0, p1, p2, p3 = (0, 0), (100, 0), (100, 159.86), (110, 190.89)
+    alpha01, alpha02, alpha12, alpha03 = (47.91, 29.16, 77.06, 46.74)
+
+    point = solve_nonlineq(p0, p1, p2, p3, alpha01, alpha02, alpha12, alpha03)
+    print(point)
