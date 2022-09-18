@@ -281,6 +281,9 @@ def solve_nonlineq(p0, p1, p2, p3, alpha01, alpha02, alpha12, alpha03):
 if __name__ == "__main__":
     p0, p1, p2, p3 = (0, 0), (100, 0), (100, 159.86), (110, 190.89)
     alpha01, alpha02, alpha12, alpha03 = (47.91, 29.16, 77.06, 46.74)
+    print(f"IN：发送信号的点位分别为：{p0}, {p1}, {p2}, {p3}")
+    print(f"IN：可测得的夹角分别为：{alpha01}, {alpha02}, {alpha12}, {alpha03}")
 
     point = solve_nonlineq(p0, p1, p2, p3, alpha01, alpha02, alpha12, alpha03)
+
     print(f"最终定位点坐标为：{point}")

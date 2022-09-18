@@ -146,7 +146,7 @@ def locate(
     c2 = insec(p1, d1, p3, d3)
     for r, t in c1:
         for r2, t2 in c2:
-            if r == r2 and round(t, 0) == round(t2, 0):
+            if round(r, 0) == round(r2, 0) and round(t, 0) == round(t2, 0):
                 return r, t
     return None
 
@@ -267,8 +267,12 @@ def verify_point(x, p1, p2, obser_angel):
 
 
 if __name__ == "__main__":
-    p0, p1, p2 = (0, 0), (100, 0), (100, 159.86)
-    alpha01, alpha02, alpha12 = 47.91, 29.16, 77.06
+    p0, p1, p2 = (100, 159.86), (0, 0), (100, 0)
+    alpha01, alpha02, alpha12 = (
+        29.16,
+        77.06,
+        47.91,
+    )
     print(f"IN：发送信号的点位分别为：{p0}, {p1}, {p2}")
     print(f"IN：可测得的夹角分别为：{alpha01}, {alpha02}, {alpha12}")
     points = solve_nonlineq(p0, p1, p2, alpha01, alpha02, alpha12)
