@@ -87,10 +87,27 @@ def insec(p1, r1, p2, r2):
     a, b = polar2rect(p2)
     S = r2
     d = math.sqrt((abs(a - x)) ** 2 + (abs(b - y)) ** 2)
-    # print(x, y, a, b, R, S)
-    assert d >= (abs(R - S)) and d <= (R + S), f"Two circles have no intersection"
+    print(x, y, a, b, R, S, d)
     assert d != 0 or R != S, f"Two circles have same center!"
+    # 讨论夹角为0度的问题
+    print(d, abs(R - S))
+    print(p1 == (0, 0))
+    if int(d) == int(abs(R - S)):
+        if p1 == (0, 0):  # 如果p1是原点，则角度与p2相同
+            return [(max(R, S), p2[1])]
+        elif p2 == (0, 0):
+            return [(max(R, S), p1[1])]
+        else:
+            raise f"三点共线且无原点，点位不足，无法定位"
+    if int(d) == int(R + S):  # 点在两个点之间的情况，哪个点是原点，则用哪个点的距离当半径
+        if p1 == (0, 0):  # 如果p1是原点，则角度与p2相同
+            return [(r1, p2[1])]
+        elif p2 == (0, 0):
+            return [(r2, p1[1])]
+        else:
+            raise f"三点共线且无原点，点位不足，无法定位"
 
+    assert d > (abs(R - S)) and d < (R + S), f"无法构成三角形"
     A = (R**2 - S**2 + d**2) / (2 * d)
     h = math.sqrt(R**2 - A**2)
     x2 = x + A * (a - x) / d
@@ -250,10 +267,8 @@ def solve_nonlineq(p0, p1, p2, alpha01, alpha02, alpha12):
             and y >= 0
             and z >= 0
         ):
-            print(f"==>距离解析解：{r}")
             p = locate(p0, x, p1, y, p2, z)
             if p:
-                print(f"使用该解求得的点位：{p}")
                 points.append(p)
     return points
 
@@ -267,17 +282,15 @@ def verify_point(x, p1, p2, obser_angel):
 
 
 if __name__ == "__main__":
-    p0, p1, p2 = (0, 0), (100, 0), (100, 159.86)
-    alpha01, alpha02, alpha12 = 47.91, 29.16, 77.06
-    print(f"IN：发送信号的点位分别为：{p0}, {p1}, {p2}")
-    print(f"IN：可测得的夹角分别为：{alpha01}, {alpha02}, {alpha12}")
+    # 验证菱形定位
+    p0, p1, p2 = (0, 0), (50, 150), (50, 210)
+    alpha01, alpha02, alpha12 = 0, 43.9, 43.9
     points = solve_nonlineq(p0, p1, p2, alpha01, alpha02, alpha12)
+    print(points)
 
     if len(points) > 1:
         extra_point = (110, 190.89)
         extra_angel = 46.74
-        print(f"IN：用于消除“镜像点”的辅助点位：{extra_point}")
-        print(f"IN：可测得的辅助点位夹角：{extra_angel}")
         for x in points:
             if verify_point(x, p0, extra_point, extra_angel):
                 print(f"定位成功：{x}")
